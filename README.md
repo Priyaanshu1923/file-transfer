@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# File Sharing Application
 
-## Getting Started
+A simple file sharing application built with Next.js that allows users to upload and share files using a unique code.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- File upload with size limit
+- Unique 6-character sharing code generation
+- File download using sharing code
+- 24-hour file expiration
+- Download count tracking
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment on Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This application is configured to be deployed on Vercel with Vercel Blob Storage for file storage.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
 
-## Learn More
+- A Vercel account
+- Vercel CLI installed (optional for local deployment)
 
-To learn more about Next.js, take a look at the following resources:
+### Setup Steps
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Create a Vercel Blob Storage**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   - Go to your Vercel dashboard
+   - Navigate to Storage section
+   - Create a new Blob Storage instance
+   - Copy the `BLOB_READ_WRITE_TOKEN`
 
-## Deploy on Vercel
+2. **Set Environment Variables**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   - In your Vercel project settings, add the following environment variable:
+     - `BLOB_READ_WRITE_TOKEN`: Your Vercel Blob Storage token
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Deploy to Vercel**
+
+   Using Vercel CLI:
+   ```bash
+   vercel
+   ```
+
+   Or connect your GitHub repository to Vercel for automatic deployments.
+
+## Local Development
+
+1. Clone the repository
+2. Install dependencies
+   ```bash
+   npm install
+   ```
+3. Create a `.env.local` file with the following variables:
+   ```
+   BLOB_READ_WRITE_TOKEN=your_token_here
+   ```
+4. Run the development server
+   ```bash
+   npm run dev
+   ```
+
+## License
+
+MIT
