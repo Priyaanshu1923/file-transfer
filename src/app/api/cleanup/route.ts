@@ -8,7 +8,14 @@ const METADATA_DIR = process.env.NODE_ENV === 'production'
   ? '/tmp/metadata'
   : join(process.cwd(), 'data', 'metadata');
 
-export async function GET() {
+export async function GET(req: Request) {
+  // Secure with CRON_SECRET
+  if (process.env.CRON_SECRET) {
+    if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+  }
+
   const now = Date.now();
   let deleted = 0;
 

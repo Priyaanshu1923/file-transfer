@@ -1,0 +1,14 @@
+    name: Trigger Vercel Cleanup
+
+    on:
+      schedule:
+        - cron: '*/2 * * * *'  # every 2 minutes
+
+    jobs:
+      call-cleanup:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Call cleanup endpoint
+            run: |
+              curl -X GET "https://file-transfer-rose.vercel.app/api/cleanup" \
+                -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
