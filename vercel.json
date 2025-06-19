@@ -5,13 +5,5 @@
   "framework": "nextjs",
   "regions": [
     "iad1"
-  ],
-  
-  "cron": [
-    {
-      "path": "/api/cleanup",
-      "schedule": "*/1 * * * *"
-    }
   ]
-  
 }
