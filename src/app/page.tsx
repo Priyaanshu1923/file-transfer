@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { upload as blobUpload } from '@vercel/blob/client';
 
 type Mode = 'select' | 'send' | 'receive';
@@ -19,6 +19,8 @@ export default function Home() {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [timer, setTimer] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -114,6 +116,30 @@ export default function Home() {
     }
   };
 
+  // Start timer when uploadResult is set and has no error
+  useEffect(() => {
+    if (uploadResult && !uploadResult.error) {
+      setTimer(60); // 1 minutes in seconds
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setTimer((prev) => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setTimer(null);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [uploadResult]);
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 sm:p-8">
       <div className="max-w-2xl mx-auto">
@@ -204,7 +230,11 @@ export default function Home() {
                     </div>
                     <p className="text-sm text-gray-600">
                       Share this code with someone to let them download your file.<br />
-                      This code will expire in 24 hours.
+                      {timer !== null && timer > 0 ? (
+                        <span>This code will expire in {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')} minutes.</span>
+                      ) : timer === 0 ? (
+                        <span className="text-red-600 font-semibold">Code expired.</span>
+                      ) : null}
                     </p>
                   </div>
                 )}
