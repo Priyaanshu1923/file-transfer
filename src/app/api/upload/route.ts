@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { join } from 'path';
 import { initStorage, saveFileMetadata } from '@/lib/fileStorage';
 import crypto from 'crypto';
 import { put } from '@vercel/blob';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// New route segment config
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // Generate a unique ID
 function generateId(): string {
@@ -17,6 +14,13 @@ function generateId(): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Log environment check
+    console.log('Environment check:', {
+      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+      tokenPrefix: process.env.BLOB_READ_WRITE_TOKEN?.substring(0, 10),
+      env: process.env.NODE_ENV
+    });
+
     // Initialize storage
     await initStorage();
 
@@ -48,14 +52,22 @@ export async function POST(request: NextRequest) {
       code
     });
 
+    // Convert Blob to ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     // Generate safe filename
     const fileExtension = file.name.split('.').pop() || '';
     const safeFilename = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
 
     try {
+      console.log('Starting Vercel Blob upload...');
+      
       // Upload file to Vercel Blob Storage
-      const { url } = await put(safeFilename, file, {
+      const { url } = await put(safeFilename, buffer, {
         access: 'public',
+        addRandomSuffix: true,
+        contentType: file.type || 'application/octet-stream'
       });
       
       console.log('File uploaded successfully to Vercel Blob:', url);
@@ -68,7 +80,7 @@ export async function POST(request: NextRequest) {
         mimetype: file.type || 'application/octet-stream',
         size: file.size,
         uploadDate: new Date().toISOString(),
-        path: url, // Store the Blob URL instead of local path
+        path: url,
         code: code,
         downloads: 0
       };
@@ -80,21 +92,46 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'File uploaded successfully',
         fileId: metadata.id,
-        code: metadata.code
+        code: metadata.code,
+        url: url
       });
 
     } catch (error) {
-      console.error('Error saving file:', error);
+      // Detailed error logging
+      console.error('Upload error details:', {
+        error: error instanceof Error ? {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        } : error,
+        blobToken: process.env.BLOB_READ_WRITE_TOKEN ? 'Present' : 'Missing'
+      });
+
       return NextResponse.json(
-        { error: 'Error saving file' },
+        { 
+          error: 'Error saving file',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
         { status: 500 }
       );
     }
 
   } catch (error) {
-    console.error('Upload error:', error);
+    // Detailed error logging for outer try-catch
+    console.error('Request processing error:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      } : error,
+      blobToken: process.env.BLOB_READ_WRITE_TOKEN ? 'Present' : 'Missing'
+    });
+
     return NextResponse.json(
-      { error: 'Error processing upload' },
+      { 
+        error: 'Error processing upload',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

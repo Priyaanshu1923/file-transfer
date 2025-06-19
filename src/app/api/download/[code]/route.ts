@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFileMetadata, updateFileMetadata } from '@/lib/fileStorage';
-import { get } from '@vercel/blob';
 
 export async function GET(
   request: NextRequest,

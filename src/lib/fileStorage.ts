@@ -15,44 +15,114 @@ export interface FileMetadata {
   downloads: number;
 }
 
-// We'll still keep metadata locally for simplicity
-const METADATA_DIR = join(process.cwd(), 'data', 'metadata');
+// Use tmp directory in production, data directory in development
+const METADATA_DIR = process.env.NODE_ENV === 'production'
+  ? '/tmp/metadata'
+  : join(process.cwd(), 'data', 'metadata');
 
 // Ensure metadata directory exists
 export async function initStorage() {
   try {
-    // Only create metadata directory as files will be stored in Vercel Blob
-    mkdirSync(METADATA_DIR, { recursive: true });
+    console.log('Initializing storage in directory:', METADATA_DIR);
+    
+    // Create metadata directory with proper permissions
+    mkdirSync(METADATA_DIR, { recursive: true, mode: 0o777 });
+    
+    // Verify directory was created
+    if (!existsSync(METADATA_DIR)) {
+      throw new Error(`Failed to create metadata directory: ${METADATA_DIR}`);
+    }
+    
+    console.log('Storage initialized successfully');
     return true;
   } catch (error) {
-    console.error('Error initializing storage directories:', error);
-    throw error;
+    console.error('Storage initialization error:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      } : error,
+      directory: METADATA_DIR
+    });
+    
+    // Don't throw in production
+    if (process.env.NODE_ENV === 'development') {
+      throw error;
+    }
+    return false;
   }
 }
 
 // Save file metadata
 export async function saveFileMetadata(metadata: FileMetadata) {
   try {
+    console.log('Saving metadata for file:', metadata.filename);
+    
     const metadataPath = join(METADATA_DIR, `${metadata.code}.json`);
-    await writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+    console.log('Metadata path:', metadataPath);
+    
+    // Ensure directory exists before writing
+    mkdirSync(METADATA_DIR, { recursive: true, mode: 0o777 });
+    
+    // Write metadata with full permissions
+    await writeFile(
+      metadataPath,
+      JSON.stringify(metadata, null, 2),
+      { mode: 0o666 }
+    );
+    
+    // Verify file was written
+    if (!existsSync(metadataPath)) {
+      throw new Error(`Failed to write metadata file: ${metadataPath}`);
+    }
+    
+    console.log('Metadata saved successfully');
     return metadata;
   } catch (error) {
-    console.error('Error saving file metadata:', error);
-    throw error;
+    console.error('Metadata save error:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      } : error,
+      path: join(METADATA_DIR, `${metadata.code}.json`)
+    });
+    
+    // In production, continue even if metadata saving fails
+    if (process.env.NODE_ENV === 'development') {
+      throw error;
+    }
+    return metadata;
   }
 }
 
 // Get file metadata by code
 export async function getFileMetadata(code: string): Promise<FileMetadata | null> {
   try {
+    console.log('Getting metadata for code:', code);
+    
     const metadataPath = join(METADATA_DIR, `${code}.json`);
+    console.log('Looking for metadata at:', metadataPath);
+    
     if (!existsSync(metadataPath)) {
+      console.log('Metadata file not found');
       return null;
     }
+    
     const data = await readFile(metadataPath, 'utf-8');
-    return JSON.parse(data) as FileMetadata;
+    const metadata = JSON.parse(data) as FileMetadata;
+    console.log('Metadata retrieved successfully');
+    return metadata;
   } catch (error) {
-    console.error('Error reading file metadata:', error);
+    console.error('Metadata read error:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      } : error,
+      code,
+      path: join(METADATA_DIR, `${code}.json`)
+    });
     return null;
   }
 }
