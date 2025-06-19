@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { upload as blobUpload } from '@vercel/blob/client';
 
 type Mode = 'select' | 'send' | 'receive';
 
@@ -22,11 +23,6 @@ export default function Home() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Check file size (e.g., 100MB limit)
-      if (selectedFile.size > 100 * 1024 * 1024) {
-        alert('File size must be less than 100MB');
-        return;
-      }
       setFile(selectedFile);
       setUploadResult(null);
     }
@@ -43,16 +39,26 @@ export default function Home() {
     setUploadResult(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
       // Generate a random 6-character code
       const code = generateRandomCode();
-      formData.append('code', code);
 
-      const response = await fetch('/api/upload', {
+      // Upload file directly to Vercel Blob
+      const { url } = await blobUpload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/blob-upload',
+      });
+
+      // Send metadata to API
+      const response = await fetch('/api/upload-metadata', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          code,
+          originalName: file.name,
+          mimetype: file.type,
+          size: file.size,
+        }),
       });
 
       const result = await response.json();
