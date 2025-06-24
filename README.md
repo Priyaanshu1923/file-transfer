@@ -57,7 +57,3 @@ This application is configured to be deployed on Vercel with Vercel Blob Storage
    ```bash
    npm run dev
    ```
-
-## License
-
-MIT
